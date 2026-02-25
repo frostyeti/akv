@@ -41,7 +41,12 @@
 |-- main.go
 |-- mise.toml
 |-- cmd/
-|   `-- root.go
+|   |-- certificates.go
+|   |-- errors.go
+|   |-- keys.go
+|   |-- root_test.go
+|   |-- root.go
+|   `-- secrets.go
 `-- issues/
     |-- 0-setup-project.md
     |-- 1-implement.tests.md
