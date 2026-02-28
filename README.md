@@ -15,6 +15,23 @@ Azure Key Vault command-line interface
 
 ## Installation
 
+### Quick Install (Recommended)
+
+#### Linux/macOS
+```bash
+curl -fsSL https://raw.githubusercontent.com/frostyeti/akv/main/eng/scripts/install.sh | bash
+```
+
+#### Windows (PowerShell)
+```powershell
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/frostyeti/akv/main/eng/scripts/install.ps1 -OutFile install.ps1; .\install.ps1
+```
+
+**Environment Variables:**
+- `AKV_INSTALL_DIR` - Set custom installation directory (optional)
+  - Default Linux/macOS: `~/.local/bin`
+  - Default Windows: `~/AppData/Local/Programs/bin`
+
 ### Binary Downloads
 
 Download the appropriate archive for your platform from the [GitHub Releases](https://github.com/frostyeti/akv/releases) page.
