@@ -19,12 +19,12 @@ Azure Key Vault command-line interface
 
 #### Linux/macOS
 ```bash
-curl -fsSL https://raw.githubusercontent.com/frostyeti/akv/main/eng/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/frostyeti/akv/master/eng/scripts/install.sh | bash
 ```
 
 #### Windows (PowerShell)
 ```powershell
-Invoke-WebRequest -Uri https://raw.githubusercontent.com/frostyeti/akv/main/eng/scripts/install.ps1 -OutFile install.ps1; .\install.ps1
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/frostyeti/akv/master/eng/scripts/install.ps1 -OutFile install.ps1; .\install.ps1
 ```
 
 **Environment Variables:**
