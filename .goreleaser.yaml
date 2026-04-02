@@ -58,6 +58,7 @@ brews:
     repository:
       owner: frostyeti
       name: homebrew-tap
+      token: '{{ .Env.HOMEBREW_TAP_TOKEN }}'
     commit_author:
       name: goreleaserbot
       email: bot@goreleaser.com
@@ -212,7 +213,7 @@ winget:
       owner: frostyeti
       name: winget-pkgs
       branch: "akv-{{ .Version }}"
-      token: '{{ if .Env.WINGET_TOKEN }}{{ .Env.WINGET_TOKEN }}{{ else }}{{ .Env.GITHUB_TOKEN }}{{ end }}'
+      token: '{{ .Env.WINGET_TOKEN }}'
       pull_request:
         enabled: true
         draft: true
