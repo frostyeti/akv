@@ -213,7 +213,7 @@ winget:
       owner: frostyeti
       name: winget-pkgs
       branch: "akv-{{ .Version }}"
-      token: '{{ .Env.WINGET_TOKEN }}'
+      token: '{{ .Env.GITHUB_TOKEN }}'
       pull_request:
         enabled: true
         draft: true
