@@ -109,6 +109,55 @@ akv completion powershell | Out-String | Invoke-Expression
 - `akv secrets export` Export secrets to JSON.
 - `akv secrets sync` Sync secrets from JSON.
 
+All three commands use JSON objects keyed by secret name.
+
+Import example:
+
+```json
+{
+  "db-password": "plain-value",
+  "api-key": {
+    "value": "secret-value",
+    "ensure": true,
+    "size": 32,
+    "tags": {
+      "team": "platform"
+    }
+  }
+}
+```
+
+Sync example:
+
+```json
+{
+  "db-password": {
+    "value": "new-value",
+    "delete": false,
+    "tags": {
+      "owner": "app"
+    }
+  },
+  "legacy-secret": {
+    "delete": true
+  }
+}
+```
+
+Export example:
+
+```json
+{
+  "db-password": {
+    "value": "secret-value",
+    "contentType": "text/plain",
+    "tags": {
+      "team": "platform"
+    }
+  }
+}
+```
+
 ### Keys
 
 - `akv keys get <name>`

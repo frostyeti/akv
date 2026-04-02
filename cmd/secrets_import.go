@@ -30,7 +30,19 @@ func newSecretsImportCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "import",
 		Short: "Import secrets from JSON",
-		Args:  cobra.NoArgs,
+		Long: `Import secrets from JSON.
+
+Input shape:
+  {
+    "db-password": "plain-value",
+    "api-key": {
+      "value": "secret-value",
+      "ensure": true,
+      "size": 32,
+      "tags": {"team": "platform"}
+    }
+  }`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if file == "" && !stdin {
 				return fmt.Errorf("must specify either --file or --stdin")
@@ -85,8 +97,8 @@ func newSecretsImportCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&file, "file", "f", "", "Input JSON file path")
-	cmd.Flags().BoolVar(&stdin, "stdin", false, "Read JSON from stdin")
+	cmd.Flags().StringVarP(&file, "file", "f", "", "Input JSON file path (JSON format)")
+	cmd.Flags().BoolVar(&stdin, "stdin", false, "Read JSON from stdin (JSON format)")
 	return cmd
 }
 

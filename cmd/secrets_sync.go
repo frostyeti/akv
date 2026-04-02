@@ -33,7 +33,20 @@ func newSecretsSyncCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "sync",
 		Short: "Sync secrets from JSON",
-		Args:  cobra.NoArgs,
+		Long: `Sync secrets from JSON.
+
+Input shape:
+  {
+    "db-password": {
+      "value": "new-value",
+      "delete": false,
+      "tags": {"owner": "app"}
+    },
+    "legacy-secret": {
+      "delete": true
+    }
+  }`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if file == "" && !stdin {
 				return fmt.Errorf("must specify either --file or --stdin")
@@ -67,8 +80,8 @@ func newSecretsSyncCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&file, "file", "f", "", "Input JSON file path")
-	cmd.Flags().BoolVar(&stdin, "stdin", false, "Read JSON from stdin")
+	cmd.Flags().StringVarP(&file, "file", "f", "", "Input JSON file path (JSON format)")
+	cmd.Flags().BoolVar(&stdin, "stdin", false, "Read JSON from stdin (JSON format)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show what would be changed without making changes")
 	return cmd
 }

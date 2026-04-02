@@ -14,7 +14,17 @@ func newSecretsExportCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "export",
 		Short: "Export secrets to JSON",
-		Args:  cobra.NoArgs,
+		Long: `Export secrets to JSON.
+
+Output shape:
+  {
+    "db-password": {
+      "value": "secret-value",
+      "contentType": "text/plain",
+      "tags": {"team": "platform"}
+    }
+  }`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			service, err := secretServiceFactory(cmd)
 			if err != nil {
@@ -49,6 +59,6 @@ func newSecretsExportCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&file, "file", "f", "", "Output JSON file path")
+	cmd.Flags().StringVarP(&file, "file", "f", "", "Output JSON file path (JSON format)")
 	return cmd
 }
