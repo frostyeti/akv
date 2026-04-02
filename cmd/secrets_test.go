@@ -17,6 +17,7 @@ type mockSecretService struct {
 	delErr   error
 	updErr   error
 	purgeErr error
+	listVals []string
 
 	setCalls   int
 	updCalls   int
@@ -30,6 +31,15 @@ func (m *mockSecretService) Get(ctx context.Context, name string, version string
 	m.lastName = name
 	m.lastVer = version
 	return m.getValue, m.getErr
+}
+
+func (m *mockSecretService) GetData(ctx context.Context, name string, version string) (keyvault.SecretInfo, error) {
+	m.lastName = name
+	m.lastVer = version
+	if m.getErr != nil {
+		return keyvault.SecretInfo{}, m.getErr
+	}
+	return keyvault.SecretInfo{}, nil
 }
 
 func (m *mockSecretService) Set(ctx context.Context, name string, value string) error {
@@ -52,7 +62,7 @@ func (m *mockSecretService) Update(ctx context.Context, name string, in keyvault
 }
 
 func (m *mockSecretService) List(ctx context.Context) ([]string, error) {
-	return []string{}, nil
+	return m.listVals, nil
 }
 
 func (m *mockSecretService) Purge(ctx context.Context, name string) error {
@@ -88,8 +98,8 @@ func TestSecretRootAliasesMatchSecretSubcommands(t *testing.T) {
 		},
 		{
 			name:      "ensure alias and subcommand",
-			aliasArgs: []string{"ensure", "db-password", "ensured"},
-			subArgs:   []string{"secrets", "ensure", "db-password", "ensured"},
+			aliasArgs: []string{"ensure", "db-password"},
+			subArgs:   []string{"secrets", "ensure", "db-password"},
 			setup: func(s *mockSecretService) {
 				s.getErr = keyvault.ErrSecretNotFound
 			},
@@ -128,7 +138,7 @@ func TestSecretRootAliasesMatchSecretSubcommands(t *testing.T) {
 func TestEnsureDoesNotSetWhenSecretExists(t *testing.T) {
 	svc := &mockSecretService{getValue: "existing-value"}
 
-	out, err := runCommandWithMockService(t, svc, "ensure", "db-password", "new-value")
+	out, err := runCommandWithMockService(t, svc, "ensure", "db-password")
 	if err != nil {
 		t.Fatalf("ensure command failed: %v", err)
 	}
@@ -142,6 +152,57 @@ func TestEnsureDoesNotSetWhenSecretExists(t *testing.T) {
 	}
 }
 
+func TestEnsureGeneratesWhenMissing(t *testing.T) {
+	svc := &mockSecretService{getErr: keyvault.ErrSecretNotFound}
+
+	out, err := runCommandWithMockService(t, svc, "ensure", "db-password", "--size", "8", "--chars", "abc")
+	if err != nil {
+		t.Fatalf("ensure command failed: %v", err)
+	}
+
+	if svc.setCalls != 1 {
+		t.Fatalf("expected ensure to set missing secret")
+	}
+
+	if out == "" {
+		t.Fatalf("expected generated output message")
+	}
+}
+
+func TestLsListsAndFiltersSecrets(t *testing.T) {
+	svc := &mockSecretService{listVals: []string{"app-prod", "app-dev", "db-prod"}}
+
+	out, err := runCommandWithMockService(t, svc, "ls", "app-*")
+	if err != nil {
+		t.Fatalf("ls command failed: %v", err)
+	}
+
+	if out == "" {
+		t.Fatalf("expected ls output")
+	}
+
+	if svc.setCalls != 0 {
+		t.Fatalf("unexpected set call during ls")
+	}
+}
+
+func TestGenerateSecretValueUsesCustomChars(t *testing.T) {
+	secret, err := generateSecretValue(secretGenerationOptions{Size: 12, Chars: "ab"})
+	if err != nil {
+		t.Fatalf("generateSecretValue returned error: %v", err)
+	}
+
+	if len(secret) != 12 {
+		t.Fatalf("expected generated secret length 12, got %d", len(secret))
+	}
+
+	for _, r := range secret {
+		if r != 'a' && r != 'b' {
+			t.Fatalf("unexpected character %q in generated secret", r)
+		}
+	}
+}
+
 func TestGetPassesVersionFlag(t *testing.T) {
 	svc := &mockSecretService{getValue: "super-secret"}
 
@@ -152,6 +213,41 @@ func TestGetPassesVersionFlag(t *testing.T) {
 
 	if svc.lastVer != "v-guid" {
 		t.Fatalf("expected version to be passed, got %q", svc.lastVer)
+	}
+}
+
+func TestGetSupportsJsonOutput(t *testing.T) {
+	svc := &mockSecretService{getValue: "super-secret"}
+
+	out, err := runCommandWithMockService(t, svc, "secrets", "get", "db-password", "--format", "json")
+	if err != nil {
+		t.Fatalf("get command failed: %v", err)
+	}
+
+	if out == "" {
+		t.Fatalf("expected json output")
+	}
+}
+
+func TestGetSupportsShellOutput(t *testing.T) {
+	svc := &mockSecretService{getValue: "super-secret"}
+
+	out, err := runCommandWithMockService(t, svc, "secrets", "get", "db-password", "--format", "bash")
+	if err != nil {
+		t.Fatalf("get command failed: %v", err)
+	}
+
+	if out == "" {
+		t.Fatalf("expected shell output")
+	}
+}
+
+func TestGetDataCommandExists(t *testing.T) {
+	svc := &mockSecretService{}
+
+	_, err := runCommandWithMockService(t, svc, "secrets", "get-data", "db-password")
+	if err != nil {
+		t.Fatalf("get-data command failed: %v", err)
 	}
 }
 

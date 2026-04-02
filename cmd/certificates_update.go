@@ -1,0 +1,67 @@
+package cmd
+
+import (
+	"fmt"
+
+	"github.com/frostyeti/akv/internal/keyvault"
+	"github.com/spf13/cobra"
+)
+
+func newCertificateUpdateCmd() *cobra.Command {
+	var (
+		version    string
+		tagValues  []string
+		expiresOn  string
+		notBefore  string
+		enabledSet bool
+		enabled    bool
+	)
+
+	cmd := &cobra.Command{
+		Use:   "update <name>",
+		Short: "Update certificate properties",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			service, err := certificateServiceFactory(cmd)
+			if err != nil {
+				return err
+			}
+
+			tags, err := parseTags(tagValues)
+			if err != nil {
+				return err
+			}
+
+			expiresAt, err := parseOptionalTime(expiresOn)
+			if err != nil {
+				return err
+			}
+
+			notBeforeAt, err := parseOptionalTime(notBefore)
+			if err != nil {
+				return err
+			}
+
+			in := keyvault.CertificateUpdateInput{Version: version, Tags: tags, ExpiresOn: expiresAt, NotBefore: notBeforeAt}
+			if enabledSet {
+				in.Enabled = &enabled
+			}
+
+			if err := service.Update(cmd.Context(), args[0], in); err != nil {
+				return err
+			}
+
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "updated certificate %q\n", args[0])
+			return err
+		},
+	}
+
+	cmd.Flags().StringVar(&version, "version", "", "Specific certificate version")
+	cmd.Flags().StringArrayVar(&tagValues, "tag", nil, "Certificate tag in key=value format")
+	cmd.Flags().StringVar(&expiresOn, "expires-on", "", "Expiration time in RFC3339")
+	cmd.Flags().StringVar(&notBefore, "not-before", "", "Not-before time in RFC3339")
+	cmd.Flags().BoolVar(&enabled, "enabled", true, "Whether the certificate is enabled")
+	cmd.Flags().BoolVar(&enabledSet, "set-enabled", false, "Apply --enabled value when updating")
+
+	return cmd
+}

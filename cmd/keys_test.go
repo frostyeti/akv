@@ -13,6 +13,7 @@ type mockKeyService struct {
 	getInfo  keyvault.KeyInfo
 	getErr   error
 	setErr   error
+	listVals []string
 	updErr   error
 	delErr   error
 	purgeErr error
@@ -28,6 +29,10 @@ func (m *mockKeyService) Get(ctx context.Context, name string, version string) (
 
 func (m *mockKeyService) Set(ctx context.Context, name string, in keyvault.KeyCreateInput) error {
 	return m.setErr
+}
+
+func (m *mockKeyService) List(ctx context.Context) ([]string, error) {
+	return m.listVals, nil
 }
 
 func (m *mockKeyService) Update(ctx context.Context, name string, in keyvault.KeyUpdateInput) error {
@@ -86,5 +91,22 @@ func TestKeysUpdatePassesVersion(t *testing.T) {
 	}
 	if svc.lastVersion != "v3" {
 		t.Fatalf("expected version v3, got %q", svc.lastVersion)
+	}
+}
+
+func TestKeysListFiltersPatterns(t *testing.T) {
+	svc := &mockKeyService{listVals: []string{"app-prod", "app-dev", "db-prod"}}
+
+	original := keyServiceFactory
+	keyServiceFactory = func(cmd *cobra.Command) (keyService, error) { return svc, nil }
+	t.Cleanup(func() { keyServiceFactory = original })
+
+	root := NewRootCmd()
+	out := &bytes.Buffer{}
+	root.SetOut(out)
+	root.SetArgs([]string{"keys", "ls", "app-*"})
+
+	if err := root.Execute(); err != nil {
+		t.Fatalf("keys ls failed: %v", err)
 	}
 }

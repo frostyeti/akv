@@ -68,6 +68,22 @@ func TestGetSecretNotFound(t *testing.T) {
 	}
 }
 
+func TestGetSecretData(t *testing.T) {
+	client := &fakeSecretClient{
+		getResp: azsecrets.GetSecretResponse{Secret: azsecrets.Secret{Value: ptr("secret")}},
+	}
+
+	svc := NewSecretsServiceWithClient(client)
+	info, err := svc.GetData(context.Background(), "db-password", "")
+	if err != nil {
+		t.Fatalf("GetData returned error: %v", err)
+	}
+
+	if info.Value == nil || *info.Value != "secret" {
+		t.Fatalf("expected value to be returned")
+	}
+}
+
 func TestSetSecret(t *testing.T) {
 	client := &fakeSecretClient{}
 	svc := NewSecretsServiceWithClient(client)
@@ -118,3 +134,5 @@ func TestUpdateSecret(t *testing.T) {
 		t.Fatalf("expected one update call, got %d", client.updCalls)
 	}
 }
+
+func ptr(v string) *string { return &v }

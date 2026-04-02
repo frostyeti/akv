@@ -24,6 +24,11 @@ type secretClient interface {
 	PurgeDeletedSecret(ctx context.Context, name string, options *azsecrets.PurgeDeletedSecretOptions) (azsecrets.PurgeDeletedSecretResponse, error)
 }
 
+// SecretInfo stores a secret record as returned by Azure Key Vault.
+type SecretInfo struct {
+	azsecrets.Secret
+}
+
 // SecretUpdateInput stores mutable secret metadata attributes.
 type SecretUpdateInput struct {
 	Version     string
@@ -75,6 +80,20 @@ func (s *SecretsService) Get(ctx context.Context, name string, version string) (
 	}
 
 	return *resp.Value, nil
+}
+
+// GetData fetches the full secret record by name and optional version.
+func (s *SecretsService) GetData(ctx context.Context, name string, version string) (SecretInfo, error) {
+	resp, err := s.client.GetSecret(ctx, name, version, nil)
+	if err != nil {
+		if isNotFound(err) {
+			return SecretInfo{}, ErrSecretNotFound
+		}
+
+		return SecretInfo{}, fmt.Errorf("get secret %q: %w", name, err)
+	}
+
+	return SecretInfo{Secret: resp.Secret}, nil
 }
 
 // Set creates or updates a secret value.

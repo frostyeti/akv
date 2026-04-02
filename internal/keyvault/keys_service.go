@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys"
 	"github.com/frostyeti/akv/internal/auth"
 )
@@ -15,6 +16,7 @@ var ErrKeyNotFound = errors.New("key not found")
 type keyClient interface {
 	GetKey(ctx context.Context, name string, version string, options *azkeys.GetKeyOptions) (azkeys.GetKeyResponse, error)
 	CreateKey(ctx context.Context, name string, parameters azkeys.CreateKeyParameters, options *azkeys.CreateKeyOptions) (azkeys.CreateKeyResponse, error)
+	NewListKeyPropertiesPager(options *azkeys.ListKeyPropertiesOptions) *runtime.Pager[azkeys.ListKeyPropertiesResponse]
 	UpdateKey(ctx context.Context, name string, version string, parameters azkeys.UpdateKeyParameters, options *azkeys.UpdateKeyOptions) (azkeys.UpdateKeyResponse, error)
 	DeleteKey(ctx context.Context, name string, options *azkeys.DeleteKeyOptions) (azkeys.DeleteKeyResponse, error)
 	PurgeDeletedKey(ctx context.Context, name string, options *azkeys.PurgeDeletedKeyOptions) (azkeys.PurgeDeletedKeyResponse, error)
@@ -112,6 +114,27 @@ func (s *KeysService) Set(ctx context.Context, name string, in KeyCreateInput) e
 	}
 
 	return nil
+}
+
+// List retrieves all key names from the vault.
+func (s *KeysService) List(ctx context.Context) ([]string, error) {
+	var keys []string
+
+	pager := s.client.NewListKeyPropertiesPager(nil)
+	for pager.More() {
+		page, err := pager.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("list keys: %w", err)
+		}
+
+		for _, key := range page.Value {
+			if key.KID != nil {
+				keys = append(keys, key.KID.Name())
+			}
+		}
+	}
+
+	return keys, nil
 }
 
 // Update updates mutable key properties for an optional version.

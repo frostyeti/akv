@@ -36,7 +36,8 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(newCertificatesCmd())
 	cmd.AddCommand(newConfigCmd())
 	cmd.AddCommand(newVaultCmd())
-	cmd.AddCommand(newLsCmd()) // Root alias for "secrets ls"
+	cmd.AddCommand(newUseCmd())
+	cmd.AddCommand(newLsCmd())
 
 	for _, alias := range newSecretRootAliasCmds() {
 		cmd.AddCommand(alias)

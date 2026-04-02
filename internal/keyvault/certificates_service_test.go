@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azcertificates"
 )
 
@@ -15,6 +16,7 @@ type fakeCertificateClient struct {
 	getResp    azcertificates.GetCertificateResponse
 	getErr     error
 	createErr  error
+	importErr  error
 	updateErr  error
 	deleteErr  error
 	purgeErr   error
@@ -29,6 +31,14 @@ func (f *fakeCertificateClient) GetCertificate(ctx context.Context, name string,
 func (f *fakeCertificateClient) CreateCertificate(ctx context.Context, name string, parameters azcertificates.CreateCertificateParameters, options *azcertificates.CreateCertificateOptions) (azcertificates.CreateCertificateResponse, error) {
 	f.createCall++
 	return azcertificates.CreateCertificateResponse{}, f.createErr
+}
+
+func (f *fakeCertificateClient) ImportCertificate(ctx context.Context, name string, parameters azcertificates.ImportCertificateParameters, options *azcertificates.ImportCertificateOptions) (azcertificates.ImportCertificateResponse, error) {
+	return azcertificates.ImportCertificateResponse{}, f.importErr
+}
+
+func (f *fakeCertificateClient) NewListCertificatePropertiesPager(options *azcertificates.ListCertificatePropertiesOptions) *runtime.Pager[azcertificates.ListCertificatePropertiesResponse] {
+	return nil
 }
 
 func (f *fakeCertificateClient) UpdateCertificate(ctx context.Context, name string, version string, parameters azcertificates.UpdateCertificateParameters, options *azcertificates.UpdateCertificateOptions) (azcertificates.UpdateCertificateResponse, error) {

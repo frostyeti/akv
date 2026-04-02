@@ -13,6 +13,7 @@ type mockCertificateService struct {
 	getInfo  keyvault.CertificateInfo
 	getErr   error
 	setErr   error
+	listVals []string
 	updErr   error
 	delErr   error
 	purgeErr error
@@ -28,6 +29,14 @@ func (m *mockCertificateService) Get(ctx context.Context, name string, version s
 
 func (m *mockCertificateService) Set(ctx context.Context, name string, in keyvault.CertificateCreateInput) error {
 	return m.setErr
+}
+
+func (m *mockCertificateService) ImportCertificate(ctx context.Context, name string, in keyvault.CertificateImportInput) error {
+	return nil
+}
+
+func (m *mockCertificateService) List(ctx context.Context) ([]string, error) {
+	return m.listVals, nil
 }
 
 func (m *mockCertificateService) Update(ctx context.Context, name string, in keyvault.CertificateUpdateInput) error {
@@ -86,5 +95,22 @@ func TestCertificatesUpdatePassesVersion(t *testing.T) {
 	}
 	if svc.lastVersion != "v4" {
 		t.Fatalf("expected version v4, got %q", svc.lastVersion)
+	}
+}
+
+func TestCertificatesListFiltersPatterns(t *testing.T) {
+	svc := &mockCertificateService{listVals: []string{"tls-prod", "tls-dev", "ca-prod"}}
+
+	original := certificateServiceFactory
+	certificateServiceFactory = func(cmd *cobra.Command) (certificateService, error) { return svc, nil }
+	t.Cleanup(func() { certificateServiceFactory = original })
+
+	root := NewRootCmd()
+	out := &bytes.Buffer{}
+	root.SetOut(out)
+	root.SetArgs([]string{"certificates", "ls", "tls-*"})
+
+	if err := root.Execute(); err != nil {
+		t.Fatalf("certificates ls failed: %v", err)
 	}
 }

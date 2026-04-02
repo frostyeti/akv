@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azcertificates"
 	"github.com/frostyeti/akv/internal/auth"
@@ -16,6 +17,8 @@ var ErrCertificateNotFound = errors.New("certificate not found")
 type certificateClient interface {
 	GetCertificate(ctx context.Context, name string, version string, options *azcertificates.GetCertificateOptions) (azcertificates.GetCertificateResponse, error)
 	CreateCertificate(ctx context.Context, name string, parameters azcertificates.CreateCertificateParameters, options *azcertificates.CreateCertificateOptions) (azcertificates.CreateCertificateResponse, error)
+	ImportCertificate(ctx context.Context, name string, parameters azcertificates.ImportCertificateParameters, options *azcertificates.ImportCertificateOptions) (azcertificates.ImportCertificateResponse, error)
+	NewListCertificatePropertiesPager(options *azcertificates.ListCertificatePropertiesOptions) *runtime.Pager[azcertificates.ListCertificatePropertiesResponse]
 	UpdateCertificate(ctx context.Context, name string, version string, parameters azcertificates.UpdateCertificateParameters, options *azcertificates.UpdateCertificateOptions) (azcertificates.UpdateCertificateResponse, error)
 	DeleteCertificate(ctx context.Context, name string, options *azcertificates.DeleteCertificateOptions) (azcertificates.DeleteCertificateResponse, error)
 	PurgeDeletedCertificate(ctx context.Context, name string, options *azcertificates.PurgeDeletedCertificateOptions) (azcertificates.PurgeDeletedCertificateResponse, error)
@@ -25,6 +28,14 @@ type certificateClient interface {
 type CertificateInfo struct {
 	ID          string
 	ContentType string
+	SID         string
+}
+
+// CertificateImportInput contains certificate import parameters.
+type CertificateImportInput struct {
+	Base64EncodedCertificate string
+	Password                 string
+	Tags                     map[string]string
 }
 
 // CertificateCreateInput contains certificate creation parameters.
@@ -85,8 +96,38 @@ func (s *CertificatesService) Get(ctx context.Context, name string, version stri
 	if resp.ContentType != nil {
 		info.ContentType = *resp.ContentType
 	}
+	if resp.SID != nil {
+		info.SID = string(*resp.SID)
+	}
 
 	return info, nil
+}
+
+// Import imports a certificate file into Key Vault.
+func (s *CertificatesService) Import(ctx context.Context, name string, in CertificateImportInput) error {
+	params := azcertificates.ImportCertificateParameters{Base64EncodedCertificate: &in.Base64EncodedCertificate}
+	if in.Password != "" {
+		params.Password = &in.Password
+	}
+	if in.Tags != nil {
+		params.Tags = make(map[string]*string, len(in.Tags))
+		for k, v := range in.Tags {
+			val := v
+			params.Tags[k] = &val
+		}
+	}
+
+	_, err := s.client.ImportCertificate(ctx, name, params, nil)
+	if err != nil {
+		return fmt.Errorf("import certificate %q: %w", name, err)
+	}
+
+	return nil
+}
+
+// ImportCertificate imports a certificate file into Key Vault.
+func (s *CertificatesService) ImportCertificate(ctx context.Context, name string, in CertificateImportInput) error {
+	return s.Import(ctx, name, in)
 }
 
 // Set creates a certificate with a default self-signed policy.
@@ -118,6 +159,27 @@ func (s *CertificatesService) Set(ctx context.Context, name string, in Certifica
 	}
 
 	return nil
+}
+
+// List retrieves all certificate names from the vault.
+func (s *CertificatesService) List(ctx context.Context) ([]string, error) {
+	var certs []string
+
+	pager := s.client.NewListCertificatePropertiesPager(nil)
+	for pager.More() {
+		page, err := pager.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("list certificates: %w", err)
+		}
+
+		for _, cert := range page.Value {
+			if cert.ID != nil {
+				certs = append(certs, cert.ID.Name())
+			}
+		}
+	}
+
+	return certs, nil
 }
 
 // Update updates mutable certificate properties for an optional version.
